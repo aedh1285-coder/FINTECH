@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fintech App - Cron Jobs</title>
+    <style>
+        body { font-family: Arial; background: #c0c0c0; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border: 3px solid black; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .balance-box { background: black; color: white; padding: 20px; text-align: center; font-size: 32px; margin-bottom: 20px; }
+        .menu { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .menu a { flex: 1; padding: 10px; background: #ddd; text-align: center; color: black; text-decoration: none; border: 1px solid black; min-width: 100px; }
+        .menu a:hover { background: black; color: white; }
+        .cron-box { background: #eee; padding: 20px; margin: 20px 0; border: 2px solid black; text-align: center; }
+        .cron-button { display: inline-block; margin: 10px; padding: 15px 30px; font-size: 18px; background: black; color: white; border: none; cursor: pointer; }
+        .cron-button:hover { background: #333; }
+        .result-box { background: white; padding: 10px; margin: 10px 0; border: 1px solid black; min-height: 50px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 8px; border: 1px solid black; text-align: left; }
+        .active { color: green; font-weight: bold; }
+        .inactive { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 FINTECH</h1>
+            <div>
+                <span id="userEmail"></span> | 
+                <a href="#" onclick="logout()">SALIR</a>
+            </div>
+        </div>
+
+        <div class="balance-box">
+            BALANCE: $<span id="balance">0</span>
+        </div>
+
+        <div class="menu">
+            <a href="dashboard.html">INICIO</a>
+            <a href="transactions.html">TRANSACCIONES</a>
+            <a href="cron.html">CRON JOBS</a>
+        </div>
+
+        <h2>🤖 PRUEBAS DE CRON JOBS</h2>
+        <p>Estos botones simulan ingresos programados automáticos</p>
+
+        <!-- Botones de prueba -->
+        <div class="cron-box">
+            <h3>INGRESOS AUTOMÁTICOS DE PRUEBA</h3>
+            
+            <button class="cron-button" onclick="testCronJob('daily')">📅 DIARIO</button>
+            <button class="cron-button" onclick="testCronJob('weekly')">📆 SEMANAL</button>
+            <button class="cron-button" onclick="testCronJob('biweekly')">📅 QUINCENAL</button>
+            <button class="cron-button" onclick="testCronJob('monthly')">📅 MENSUAL</button>
+            
+            <p style="margin-top: 20px;">Cada botón creará una transacción de prueba automática</p>
+        </div>
+
+        <!-- Resultado de la última prueba -->
+        <div class="result-box" id="cronResult">
+            <p>Haz clic en un botón para probar</p>
+        </div>
+
+        <!-- Ingresos programados reales -->
+        <h3 style="margin-top: 30px;">TUS INGRESOS PROGRAMADOS</h3>
+        <table id="scheduledTable">
+            <tr>
+                <th>DESCRIPCIÓN</th>
+                <th>MONTO</th>
+                <th>FRECUENCIA</th>
+                <th>PRÓXIMA FECHA</th>
+                <th>ESTADO</th>
+                <th>ACCIÓN</th>
+            </tr>
+        </table>
+
+        <button onclick="loadScheduledIncomes()" style="margin: 10px 0;">REFRESCAR LISTA</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+        <!-- FORMULARIO PARA CREAR INGRESOS PROGRAMADOS REALES -->
+<div class="cron-box" style="margin-top: 30px;">
+    <h3>📅 CREAR INGRESO PROGRAMADO</h3>
+    
+    <div style="text-align: left; max-width: 400px; margin: auto;">
+        <div style="margin: 10px 0;">
+            <label>Descripción:</label><br>
+            <input type="text" id="schedDesc" style="width: 100%; padding: 5px;">
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <label>Monto:</label><br>
+            <input type="number" id="schedAmount" step="0.01" style="width: 100%; padding: 5px;">
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <label>Categoría:</label><br>
+            <select id="schedCategory" style="width: 100%; padding: 5px;"></select>
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <label>Frecuencia:</label><br>
+            <select id="schedFrequency" style="width: 100%; padding: 5px;" onchange="toggleSchedFields()">
+                <option value="weekly">Semanal</option>
+                <option value="biweekly">Quincenal</option>
+                <option value="monthly">Mensual</option>
+            </select>
+        </div>
+        
+        <div style="margin: 10px 0;" id="weeklyField">
+            <label>Día de la semana:</label><br>
+            <select id="schedDayOfWeek" style="width: 100%; padding: 5px;">
+                <option value="0">Domingo</option>
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+                <option value="6">Sábado</option>
+            </select>
+        </div>
+        
+        <div style="margin: 10px 0; display: none;" id="monthlyField">
+            <label>Día del mes (1-31):</label><br>
+            <input type="number" id="schedDayOfMonth" min="1" max="31" style="width: 100%; padding: 5px;">
+        </div>
+        
+        <div style="margin: 10px 0;">
+            <label>Fecha de inicio:</label><br>
+            <input type="date" id="schedStartDate" style="width: 100%; padding: 5px;">
+        </div>
+        
+        <button onclick="createScheduledIncome()" style="width: 100%; padding: 10px; margin-top: 10px;">CREAR INGRESO PROGRAMADO</button>
+        <div id="schedResult" style="margin-top: 10px;"></div>
+    </div>
+</div>
+</html>

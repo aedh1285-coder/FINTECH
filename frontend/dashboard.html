@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fintech App - Dashboard</title>
+    <style>
+        body { font-family: Arial; background: #c0c0c0; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border: 3px solid black; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .balance-box { background: black; color: white; padding: 20px; text-align: center; font-size: 32px; margin-bottom: 20px; }
+        .menu { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .menu a { flex: 1; padding: 10px; background: #ddd; text-align: center; color: black; text-decoration: none; border: 1px solid black; min-width: 100px; }
+        .menu a:hover { background: black; color: white; }
+        .info { margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        td, th { padding: 8px; border: 1px solid black; }
+        .income { color: green; font-weight: bold; }
+        .expense { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 FINTECH</h1>
+            <div>
+                <span id="userEmail"></span> | 
+                <a href="#" onclick="logout()">SALIR</a>
+            </div>
+        </div>
+
+        <div class="balance-box">
+            BALANCE: $<span id="balance">0</span>
+        </div>
+
+        <!-- ALARMAS EN DASHBOARD -->
+        <div style="margin: 20px 0; background: #eee; padding: 10px; border: 1px solid black;">
+            <h3>🚨 ALARMAS ACTIVAS</h3>
+            <div id="alarmSummary"></div>
+        </div>
+
+        <div class="menu">
+            <a href="dashboard.html">INICIO</a>
+            <a href="transactions.html">TRANSACCIONES</a>
+            <a href="cron.html">CRON JOBS</a>
+        </div>
+
+        <div class="info">
+            <h3>ÚLTIMAS 5 TRANSACCIONES</h3>
+            <table id="recentTable">
+                <tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th></tr>
+            </table>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

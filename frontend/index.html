@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fintech App - Login</title>
+    <style>
+        body { font-family: Arial; background: #c0c0c0; margin: 0; padding: 20px; }
+        .container { max-width: 400px; margin: 50px auto; background: white; padding: 20px; border: 3px solid black; }
+        h1 { text-align: center; color: black; }
+        .tab { display: inline-block; padding: 10px 20px; background: #ddd; cursor: pointer; border: 1px solid black; }
+        .tab.active { background: black; color: white; }
+        .form { display: none; margin-top: 20px; }
+        .form.active { display: block; }
+        input { width: 90%; padding: 8px; margin: 10px 0; border: 1px solid black; }
+        button { width: 100%; padding: 10px; background: black; color: white; border: none; cursor: pointer; }
+        .error { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 FINTECH APP</h1>
+        
+        <div style="text-align: center;">
+            <span class="tab active" id="loginTab">LOGIN</span>
+            <span class="tab" id="registerTab">REGISTRO</span>
+        </div>
+
+        <div id="loginForm" class="form active">
+            <h2>Acceder</h2>
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Contraseña">
+            <button onclick="login()">ENTRAR</button>
+            <div id="loginError" class="error"></div>
+        </div>
+
+        <div id="registerForm" class="form">
+            <h2>Registro</h2>
+            <input type="text" id="registerName" placeholder="Nombre">
+            <input type="email" id="registerEmail" placeholder="Email">
+            <input type="password" id="registerPassword" placeholder="Contraseña">
+            <button onclick="register()">REGISTRARSE</button>
+            <div id="registerError" class="error"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

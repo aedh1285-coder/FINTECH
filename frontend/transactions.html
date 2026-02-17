@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fintech App - Transacciones</title>
+    <style>
+        body { font-family: Arial; background: #c0c0c0; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border: 3px solid black; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .balance-box { background: black; color: white; padding: 20px; text-align: center; font-size: 32px; margin-bottom: 20px; }
+        .menu { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .menu a { flex: 1; padding: 10px; background: #ddd; text-align: center; color: black; text-decoration: none; border: 1px solid black; min-width: 100px; }
+        .menu a:hover { background: black; color: white; }
+        .filters { background: #eee; padding: 10px; margin: 20px 0; border: 1px solid black; }
+        select, input { padding: 5px; margin: 5px; border: 1px solid black; }
+        button { padding: 5px 10px; background: black; color: white; border: none; cursor: pointer; margin: 2px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 8px; border: 1px solid black; text-align: left; }
+        .income { color: green; font-weight: bold; }
+        .expense { color: red; font-weight: bold; }
+        .edit { background: #ffc107; color: black; }
+        .delete { background: #dc3545; color: white; }
+        .float-btn { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background: black; color: white; font-size: 30px; border: none; cursor: pointer; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; width: 400px; margin: 100px auto; padding: 20px; border: 3px solid black; }
+        .close { float: right; cursor: pointer; font-size: 20px; }
+        .totals { background: black; color: white; padding: 10px; margin: 10px 0; text-align: center; }
+        .totals span { margin: 0 20px; }
+        .section { margin-top: 40px; border-top: 2px solid black; padding-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 FINTECH</h1>
+            <div>
+                <span id="userEmail"></span> | 
+                <a href="#" onclick="logout()">SALIR</a>
+            </div>
+        </div>
+
+        <div class="balance-box">
+            BALANCE: $<span id="balance">0</span>
+        </div>
+
+        <div class="menu">
+            <a href="dashboard.html">INICIO</a>
+            <a href="transactions.html">TRANSACCIONES</a>
+            <a href="cron.html">CRON JOBS</a>
+        </div>
+
+        <!-- SECCIÓN DE TRANSACCIONES -->
+        <h2>TRANSACCIONES</h2>
+        
+        <div class="filters">
+            <select id="filterType">
+                <option value="">TODOS</option>
+                <option value="income">INGRESOS</option>
+                <option value="expense">GASTOS</option>
+            </select>
+            <select id="filterCategory">
+                <option value="">TODAS LAS CATEGORÍAS</option>
+            </select>
+            <input type="date" id="filterStart">
+            <input type="date" id="filterEnd">
+            <button onclick="applyFilters()">FILTRAR</button>
+            <button onclick="resetFilters()">LIMPIAR</button>
+        </div>
+
+        <div class="totals">
+            <span>INGRESOS: $<span id="totalIncome">0</span></span>
+            <span>GASTOS: $<span id="totalExpense">0</span></span>
+            <span>NETO: $<span id="netTotal">0</span></span>
+        </div>
+
+        <div id="transactionsList"></div>
+
+        <div style="margin-top: 20px; text-align: center;">
+            <button onclick="prevPage()">ANTERIOR</button>
+            <span id="pageInfo">Página 1</span>
+            <button onclick="nextPage()">SIGUIENTE</button>
+        </div>
+
+        <!-- SECCIÓN DE CATEGORÍAS -->
+        <div class="section">
+            <h2>ADMINISTRAR CATEGORÍAS</h2>
+            
+            <div style="margin: 10px 0;">
+                <select id="newCatType">
+                    <option value="income">INGRESO</option>
+                    <option value="expense">GASTO</option>
+                </select>
+                <input type="text" id="newCatName" placeholder="Nueva categoría">
+                <button onclick="createCategory()">CREAR CATEGORÍA</button>
+            </div>
+
+            <table id="categoriesTable">
+                <tr>
+                    <th>NOMBRE</th>
+                    <th>TIPO</th>
+                    <th>ACCIONES</th>
+                </tr>
+            </table>
+        </div>
+
+        <!-- SECCIÓN DE ALARMAS (LÍMITES DE GASTO) -->
+        <div class="section">
+            <h2> ALARMAS DE GASTO (LÍMITES MENSUALES)</h2>
+            
+            <div style="margin: 20px 0; background: #f0f0f0; padding: 20px; border: 2px solid black;">
+                <h3>ESTABLECER NUEVO LÍMITE</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                    <select id="alarmCategory" style="padding: 8px; min-width: 150px;"></select>
+                    <input type="number" id="alarmLimit" placeholder="Límite mensual $" step="0.01" style="padding: 8px; width: 150px;">
+                    <input type="month" id="alarmMonth" style="padding: 8px; width: 150px;">
+                    <button onclick="setAlarm()" style="padding: 8px 20px;">ESTABLECER ALARMA</button>
+                </div>
+            </div>
+
+            <div id="alarmsContainer">
+                <table id="alarmsTable" style="width: 100%;">
+                    <tr>
+                        <th>CATEGORÍA</th>
+                        <th>LÍMITE</th>
+                        <th>GASTADO</th>
+                        <th>ESTADO</th>
+                        <th>ACCIÓN</th>
+                    </tr>
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 20px;">Cargando alarmas...</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para nueva/editar transacción -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">X</span>
+            <h2 id="modalTitle">NUEVA TRANSACCIÓN</h2>
+            
+            <select id="modalType" onchange="loadCategoriesModal()">
+                <option value="income">INGRESO</option>
+                <option value="expense">GASTO</option>
+            </select>
+            
+            <select id="modalCategory"></select>
+            
+            <input type="number" id="modalAmount" placeholder="MONTO" step="0.01" style="width: 90%; padding: 5px; margin: 5px;">
+            
+            <input type="text" id="modalDesc" placeholder="DESCRIPCIÓN" style="width: 90%; padding: 5px; margin: 5px;">
+            
+            <input type="date" id="modalDate" style="width: 90%; padding: 5px; margin: 5px;">
+            
+            <button onclick="saveTransaction()" style="width: 100%; margin-top: 10px;">GUARDAR</button>
+        </div>
+    </div>
+
+    <!-- Botón flotante para nueva transacción -->
+    <button class="float-btn" onclick="openModal()">+</button>
+
+    <script src="app.js"></script>
+</body>
+</html>
