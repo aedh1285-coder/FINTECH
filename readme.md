@@ -31,23 +31,6 @@ Aplicación completa (backend + frontend) que permite a usuarios registrar sus i
 - JavaScript vanilla
 - Fetch API
 
-## Estructura del Proyecto
-
-`fintech-api/`
-`├── src/`
-`│   ├── controllers/`
-`│   ├── models/`
-`│   ├── routes/`
-`│   ├── middlewares/`
-`│   └── server.js`
-`├── frontend/`
-`│   ├── index.html`
-`│   ├── dashboard.html`
-`│   ├── transactions.html`
-`│   ├── styles.css`
-`│   └── app.js`
-`├── .env`
-`└── package.json`
 
 ## 📡 Endpoints Principales
 
