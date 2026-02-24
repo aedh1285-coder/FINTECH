@@ -1,249 +1,232 @@
-const pool = require('./db');
+const sql = require('./db');
 
 const transactionModel = {
-  // Crear una transacción
+    // Crear una transacción
     async create(userId, { category_id, amount, type, description, date }) {
-        const query = `
-        INSERT INTO transactions (user_id, category_id, amount, type, description, date)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *
+        const [transaction] = await sql`
+            INSERT INTO transactions (user_id, category_id, amount, type, description, date)
+            VALUES (${userId}, ${category_id}, ${amount}, ${type}, ${description}, ${date})
+            RETURNING *
         `;
-        const values = [userId, category_id, amount, type, description, date];
-        const result = await pool.query(query, values);
     
         // Actualizar balance del usuario
         await this.updateUserBalance(userId);
     
-        return result.rows[0];
+        return transaction;
     },
 
-  // Obtener transacciones de un usuario
+    // Obtener transacciones de un usuario
     async findByUser(userId) {
-        const query = `
-        SELECT t.*, c.name as category_name 
-        FROM transactions t
-        LEFT JOIN categories c ON t.category_id = c.id
-        WHERE t.user_id = $1
-        ORDER BY t.date DESC
+        const transactions = await sql`
+            SELECT t.*, c.name as category_name 
+            FROM transactions t
+            LEFT JOIN categories c ON t.category_id = c.id
+            WHERE t.user_id = ${userId}
+            ORDER BY t.date DESC
         `;
-        const result = await pool.query(query, [userId]);
-        return result.rows;
+        return transactions;
     },
 
-  // Obtener una transacción específica
+    // Obtener una transacción específica
     async findById(id, userId) {
-        const query = `
-        SELECT t.*, c.name as category_name 
-        FROM transactions t
-        LEFT JOIN categories c ON t.category_id = c.id
-        WHERE t.id = $1 AND t.user_id = $2
+        const [transaction] = await sql`
+            SELECT t.*, c.name as category_name 
+            FROM transactions t
+            LEFT JOIN categories c ON t.category_id = c.id
+            WHERE t.id = ${id} AND t.user_id = ${userId}
         `;
-        const result = await pool.query(query, [id, userId]);
-        return result.rows[0];
+        return transaction;
     },
 
-  // Actualizar transacción
+    // Actualizar transacción
     async update(id, userId, fields) {
         const { category_id, amount, type, description, date } = fields;
-        const query = `
-        UPDATE transactions 
-        SET category_id = COALESCE($1, category_id),
-        amount = COALESCE($2, amount),
-        type = COALESCE($3, type),
-        description = COALESCE($4, description),
-        date = COALESCE($5, date)
-        WHERE id = $6 AND user_id = $7
-        RETURNING *
+        
+        const [updated] = await sql`
+            UPDATE transactions 
+            SET 
+                category_id = COALESCE(${category_id}, category_id),
+                amount = COALESCE(${amount}, amount),
+                type = COALESCE(${type}, type),
+                description = COALESCE(${description}, description),
+                date = COALESCE(${date}, date)
+            WHERE id = ${id} AND user_id = ${userId}
+            RETURNING *
         `;
-        const values = [category_id, amount, type, description, date, id, userId];
-        const result = await pool.query(query, values);
     
         await this.updateUserBalance(userId);
-        return result.rows[0];
+        return updated;
     },
 
-  // Eliminar transacción
+    // Eliminar transacción
     async delete(id, userId) {
-    const query = 'DELETE FROM transactions WHERE id = $1 AND user_id = $2 RETURNING id';
-    const result = await pool.query(query, [id, userId]);
-    
-    await this.updateUserBalance(userId);
-    return result.rows[0];
-    },
-
-  // Actualizar balance del usuario
-    async updateUserBalance(userId) {
-        const query = `
-        UPDATE users 
-        SET balance = (
-        SELECT COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END), 0)
-        FROM transactions
-        WHERE user_id = $1
-        )
-        WHERE id = $1
-        RETURNING balance
+        const [deleted] = await sql`
+            DELETE FROM transactions 
+            WHERE id = ${id} AND user_id = ${userId}
+            RETURNING id
         `;
-        const result = await pool.query(query, [userId]);
-        return result.rows[0].balance;
+    
+        await this.updateUserBalance(userId);
+        return deleted;
     },
 
-  // Obtener categorías del usuario
+    // Actualizar balance del usuario
+    async updateUserBalance(userId) {
+        const [result] = await sql`
+            UPDATE users 
+            SET balance = (
+                SELECT COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END), 0)
+                FROM transactions
+                WHERE user_id = ${userId}
+            )
+            WHERE id = ${userId}
+            RETURNING balance
+        `;
+        return result.balance;
+    },
+
+    // Obtener categorías del usuario
     async getCategories(userId) {
-        const query = `
-        SELECT * FROM categories 
-        WHERE user_id IS NULL OR user_id = $1
-        ORDER BY type, name
-    `;
-    const result = await pool.query(query, [userId]);
-    return result.rows;
+        const categories = await sql`
+            SELECT * FROM categories 
+            WHERE user_id IS NULL OR user_id = ${userId}
+            ORDER BY type, name
+        `;
+        return categories;
     },
-
 
     // Crear categoría personalizada
     async createCategory(userId, { name, type }) {
-      const query = `
-        INSERT INTO categories (name, type, user_id)
-        VALUES ($1, $2, $3)
-        RETURNING *
-      `;
-      const result = await pool.query(query, [name, type, userId]);
-      return result.rows[0];
+        const [category] = await sql`
+            INSERT INTO categories (name, type, user_id)
+            VALUES (${name}, ${type}, ${userId})
+            RETURNING *
+        `;
+        return category;
     },
 
     // Actualizar categoría
     async updateCategory(categoryId, userId, { name, type }) {
-      // Verificar que la categoría pertenece al usuario o es global
-      const checkQuery = 'SELECT * FROM categories WHERE id = $1 AND (user_id = $2 OR user_id IS NULL)';
-      const check = await pool.query(checkQuery, [categoryId, userId]);
-      
-      if (check.rows.length === 0) {
-        return null; // No tiene permiso
-      }
+        // Verificar que la categoría pertenece al usuario o es global
+        const [check] = await sql`
+            SELECT * FROM categories 
+            WHERE id = ${categoryId} AND (user_id = ${userId} OR user_id IS NULL)
+        `;
+        
+        if (!check) {
+            return null; // No tiene permiso
+        }
 
-      // Si es global, no permitir editar (solo admin, pero por ahora solo lectura)
-      if (check.rows[0].user_id === null) {
-        return { error: 'Las categorías globales no se pueden modificar' };
-      }
+        // Si es global, no permitir editar
+        if (check.user_id === null) {
+            return { error: 'Las categorías globales no se pueden modificar' };
+        }
 
-      const query = `
-        UPDATE categories 
-        SET name = COALESCE($1, name),
-        type = COALESCE($2, type)
-        WHERE id = $3 AND user_id = $4
-        RETURNING *
-      `;
-      const result = await pool.query(query, [name, type, categoryId, userId]);
-      return result.rows[0];
+        const [updated] = await sql`
+            UPDATE categories 
+            SET 
+                name = COALESCE(${name}, name),
+                type = COALESCE(${type}, type)
+            WHERE id = ${categoryId} AND user_id = ${userId}
+            RETURNING *
+        `;
+        return updated;
     },
 
     // Eliminar categoría (solo si es del usuario y no tiene transacciones)
     async deleteCategory(categoryId, userId) {
-      // Verificar que tiene transacciones
-      const checkQuery = 'SELECT COUNT(*) FROM transactions WHERE category_id = $1';
-      const check = await pool.query(checkQuery, [categoryId]);
-      
-      if (parseInt(check.rows[0].count) > 0) {
-        return { error: 'No se puede eliminar una categoría con transacciones' };
-      }
+        // Verificar que tiene transacciones
+        const [check] = await sql`
+            SELECT COUNT(*) as count FROM transactions 
+            WHERE category_id = ${categoryId}
+        `;
+        
+        if (parseInt(check.count) > 0) {
+            return { error: 'No se puede eliminar una categoría con transacciones' };
+        }
 
-      const query = 'DELETE FROM categories WHERE id = $1 AND user_id = $2 RETURNING id';
-      const result = await pool.query(query, [categoryId, userId]);
-      return result.rows[0];
-    },
-
-    // Obtener categorías (globales + del usuario)
-    async getCategories(userId) {
-      const query = `
-        SELECT * FROM categories 
-        WHERE user_id IS NULL OR user_id = $1
-        ORDER BY type, name
-      `;
-      const result = await pool.query(query, [userId]);
-      return result.rows;
+        const [deleted] = await sql`
+            DELETE FROM categories 
+            WHERE id = ${categoryId} AND user_id = ${userId}
+            RETURNING id
+        `;
+        return deleted;
     },
 
     // Establecer límite mensual
     async setCategoryLimit(userId, categoryId, monthlyLimit, month) {
-      const query = `
-        INSERT INTO category_limits (user_id, category_id, monthly_limit, month)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (user_id, category_id, month) 
-        DO UPDATE SET monthly_limit = EXCLUDED.monthly_limit
-        RETURNING *
-      `;
-      const result = await pool.query(query, [userId, categoryId, monthlyLimit, month]);
-      return result.rows[0];
+        const [limit] = await sql`
+            INSERT INTO category_limits (user_id, category_id, monthly_limit, month)
+            VALUES (${userId}, ${categoryId}, ${monthlyLimit}, ${month})
+            ON CONFLICT (user_id, category_id, month) 
+            DO UPDATE SET monthly_limit = EXCLUDED.monthly_limit
+            RETURNING *
+        `;
+        return limit;
     },
 
     // Obtener gasto actual vs límite
     async getCategorySpending(userId, categoryId, month) {
-      const query = `
-        WITH spending AS (
-          SELECT COALESCE(SUM(amount), 0) as total
-          FROM transactions
-          WHERE user_id = $1 
-            AND category_id = $2
-            AND type = 'expense'
-            AND DATE_TRUNC('month', date) = DATE_TRUNC('month', $3::date)
-        )
-        SELECT 
-          l.monthly_limit,
-          s.total as current_spending,
-          l.monthly_limit - s.total as remaining,
-          CASE 
-            WHEN s.total > l.monthly_limit THEN 'exceeded'
-            WHEN s.total >= l.monthly_limit * 0.8 THEN 'warning'
-            ELSE 'ok'
-          END as status
-        FROM spending s
-        LEFT JOIN category_limits l ON l.user_id = $1 AND l.category_id = $2 
-          AND DATE_TRUNC('month', l.month) = DATE_TRUNC('month', $3::date)
-      `;
-      const result = await pool.query(query, [userId, categoryId, month]);
-      return result.rows[0] || { monthly_limit: null, current_spending: 0, remaining: null, status: 'ok' };
+        const [result] = await sql`
+            WITH spending AS (
+                SELECT COALESCE(SUM(amount), 0) as total
+                FROM transactions
+                WHERE user_id = ${userId} 
+                    AND category_id = ${categoryId}
+                    AND type = 'expense'
+                    AND DATE_TRUNC('month', date) = DATE_TRUNC('month', ${month}::date)
+            )
+            SELECT 
+                l.monthly_limit,
+                s.total as current_spending,
+                l.monthly_limit - s.total as remaining,
+                CASE 
+                    WHEN s.total > l.monthly_limit THEN 'exceeded'
+                    WHEN s.total >= l.monthly_limit * 0.8 THEN 'warning'
+                    ELSE 'ok'
+                END as status
+            FROM spending s
+            LEFT JOIN category_limits l ON l.user_id = ${userId} AND l.category_id = ${categoryId} 
+                AND DATE_TRUNC('month', l.month) = DATE_TRUNC('month', ${month}::date)
+        `;
+        return result || { monthly_limit: null, current_spending: 0, remaining: null, status: 'ok' };
     },
 
     // Obtener todos los límites del mes
-
-  async getAllLimits(userId, month) {
-    try {
-      console.log('getAllLimits - userId:', userId, 'month:', month);
-      
-      const query = `
-        SELECT 
-          c.id as category_id,
-          c.name as category_name,
-          c.type,
-          l.monthly_limit,
-          COALESCE((
-            SELECT SUM(amount) 
-            FROM transactions 
-            WHERE user_id = $1 
-              AND category_id = c.id
-              AND type = 'expense'
-              AND DATE_TRUNC('month', date) = DATE_TRUNC('month', $2::date)
-          ), 0) as current_spending
-        FROM categories c
-        LEFT JOIN category_limits l ON l.user_id = $1 AND l.category_id = c.id 
-          AND DATE_TRUNC('month', l.month) = DATE_TRUNC('month', $2::date)
-        WHERE (c.user_id IS NULL OR c.user_id = $1)
-          AND c.type = 'expense'
-        ORDER BY c.name
-      `;
-      
-      console.log('Ejecutando query:', query);
-      console.log('Con parámetros:', [userId, month]);
-      
-      const result = await pool.query(query, [userId, month]);
-      console.log('Resultado:', result.rows);
-      
-      return result.rows;
-      
-    } catch (error) {
-      console.error('ERROR EN getAllLimits:', error);
-      throw error; // Lanza el error para que el controlador lo capture
+    async getAllLimits(userId, month) {
+        try {
+            console.log('getAllLimits - userId:', userId, 'month:', month);
+            
+            const limits = await sql`
+                SELECT 
+                    c.id as category_id,
+                    c.name as category_name,
+                    c.type,
+                    l.monthly_limit,
+                    COALESCE((
+                        SELECT SUM(amount) 
+                        FROM transactions 
+                        WHERE user_id = ${userId} 
+                            AND category_id = c.id
+                            AND type = 'expense'
+                            AND DATE_TRUNC('month', date) = DATE_TRUNC('month', ${month}::date)
+                    ), 0) as current_spending
+                FROM categories c
+                LEFT JOIN category_limits l ON l.user_id = ${userId} AND l.category_id = c.id 
+                    AND DATE_TRUNC('month', l.month) = DATE_TRUNC('month', ${month}::date)
+                WHERE (c.user_id IS NULL OR c.user_id = ${userId})
+                    AND c.type = 'expense'
+                ORDER BY c.name
+            `;
+            
+            console.log('Resultado:', limits);
+            return limits;
+            
+        } catch (error) {
+            console.error('ERROR EN getAllLimits:', error);
+            throw error;
+        }
     }
-  }
 };
 
 module.exports = transactionModel;

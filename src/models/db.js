@@ -1,24 +1,27 @@
-const { Pool } = require('pg');
+// config/db.js - PARA SUPABASE CON POSTGRES
+const postgres = require('postgres');
 require('dotenv').config();
 
-const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
+if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL no está definida');
+    process.exit(1);
+}
+
+const sql = postgres(process.env.DATABASE_URL, {
+    ssl: { rejectUnauthorized: false },
     max: 20,
-    idleTimeoutMillis: 30000,
+    idle_timeout: 30,
+    connect_timeout: 5,
 });
 
 // Probar conexión
-pool.connect((err, client, release) => {
-    if (err) {
-        console.error('Error conectando a PostgreSQL:', err.stack);
-    } else {
-        console.log('Conectado a PostgreSQL exitosamente');
-    release();
+(async () => {
+    try {
+        await sql`SELECT 1`;
+        console.log('✅ Conectado a Supabase');
+    } catch (error) {
+        console.error('❌ Error:', error.message);
     }
-});
+})();
 
-module.exports = pool;
+module.exports = sql;

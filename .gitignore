@@ -3,15 +3,35 @@ node_modules/
 
 # Variables de entorno
 .env
+.env.local
+.env.production
+.env.development
 
 # Archivos de registro
-npm-debug.log
-yarn-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
 
 # Archivos de sistema
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Archivos de configuración
-package-lock.json
+# Docker (si los creas después)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing (si añades después)
+coverage/
+.nyc_output/
+
+# Package lock (SÍ lo queremos en Git)
+# NO incluir package-lock.json aquí - es importante para producción
